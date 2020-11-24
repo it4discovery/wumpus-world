@@ -79,14 +79,18 @@ class DeepQAgent():
         orientationSet = []
 
         if orientation == North:
-            orientationSet = [1, 0, 0, 0]
+            orientationSet.append([1, 0, 0, 0])
         elif orientation == South:
-            orientationSet = [0, 1, 0, 0]
+            orientationSet.append([0, 1, 0, 0])
         elif orientation == East:
-            orientationSet = [0, 0, 1, 0]
+            orientationSet.append([0, 0, 1, 0])
         elif orientation == West:
-            orientationSet = [0, 0, 0, 1]  
+            orientationSet.append([0, 0, 0, 1])
 
+        #for padding
+        orientationSet.append([0, 0, 0, 0])
+        orientationSet.append([0, 0, 0, 0])
+        orientationSet.append([0, 0, 0, 0])
         return orientationSet
 
     def buildAgentLocationGrid(self, coords):
@@ -149,9 +153,9 @@ class DeepQAgent():
 
         return rows
 
-    def nextAction(self, percept):
+    def nextAction(self, percept, action):
         ret = deepcopy(self)
-        randGen = randrange(6)
+
 
         if(percept.stench == True):
             ret.stenchLocations.append(ret.agentState.location)
@@ -168,26 +172,26 @@ class DeepQAgent():
         ret.agentHeardScream = 1 if percept.scream == True else 0
         ret.agentOrientationSet = self.buildAgentOrientatioSet(ret.agentState.orientation)
 
-        if randGen == 0:
+        if action == 0:
             ret.agentState = ret.agentState.forward(
                 self.gridWidth, self.gridHeight)
             ret.safeLocations.append(ret.agentState.location)
 
             return ret, Action.Forward
-        elif randGen == 1:
+        elif action == 1:
             ret.agentState = ret.agentState.turnLeft()
             return ret, Action.TurnLeft
-        elif randGen == 2:
+        elif action == 2:
             ret.agentState = ret.agentState.turnRight()
             return ret, Action.TurnRight
-        elif randGen == 3:
+        elif action == 3:
             ret.agentState = ret.agentState.useArrow()
             return ret, Action.Shoot
-        if randGen == 4:
+        if action == 4:
             if percept.glitter == True:
                 ret.agentState.hasGold = True
 
             return ret, Action.Grab
-        if randGen == 5:
+        if action == 5:
             ret.agentState.isTerminated = True
             return ret, Action.Climb                            
