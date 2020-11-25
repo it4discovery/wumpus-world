@@ -68,6 +68,7 @@ class DeepQAgent():
         print(self.agentHeardScream)          
 
     def getAgentBeliefState(self):       
+        #flattening and concatenating all the arrays to one array of length 72
         return np.concatenate((np.array(self.agentLocationGrid).flatten(), np.array(self.safeLocationGrid).flatten(),np.array(self.stenchLocationGrid).flatten(), np.array(self.breezeLocationGrid).flatten(), np.array(self.agentOrientationSet).flatten(), np.array(self.agentHasGold).flatten(), np.array(self.agentSensesGold).flatten(), np.array(self.agentHasArrow).flatten(), np.array(self.agentHeardScream).flatten()))
 
 
@@ -153,7 +154,6 @@ class DeepQAgent():
 
     def nextAction(self, percept, action):
         ret = deepcopy(self)
-
 
         if(percept.stench == True):
             ret.stenchLocations.append(ret.agentState.location)
