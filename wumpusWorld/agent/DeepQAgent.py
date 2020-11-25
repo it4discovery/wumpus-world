@@ -4,6 +4,7 @@ from wumpusWorld.environment.Orientation import East, North, South, West
 from copy import deepcopy
 from random import randrange
 import sys
+import numpy as np
 sys.path.append(".")
 
 
@@ -66,8 +67,9 @@ class DeepQAgent():
         print('-- Agent Heard Scream --')
         print(self.agentHeardScream)          
 
-    def getAgentBeliefState(self):
-        return self.agentLocationGrid, self.safeLocationGrid, self.stenchLocationGrid, self.breezeLocationGrid, self.agentHasGold, self.agentSensesGold, self.agentHasArrow, self.agentHeardScream, self.agentOrientationSet
+    def getAgentBeliefState(self):       
+        return np.concatenate((np.array(self.agentLocationGrid).flatten(), np.array(self.safeLocationGrid).flatten(),np.array(self.stenchLocationGrid).flatten(), np.array(self.breezeLocationGrid).flatten(), np.array(self.agentOrientationSet).flatten(), np.array(self.agentHasGold).flatten(), np.array(self.agentSensesGold).flatten(), np.array(self.agentHasArrow).flatten(), np.array(self.agentHeardScream).flatten()))
+
 
     def buildAgentOrientatioSet(self, orientation):
         #Set is represented as a list of 1s and 0s
@@ -87,10 +89,6 @@ class DeepQAgent():
         elif orientation == West:
             orientationSet.append([0, 0, 0, 1])
 
-        #for padding
-        orientationSet.append([0, 0, 0, 0])
-        orientationSet.append([0, 0, 0, 0])
-        orientationSet.append([0, 0, 0, 0])
         return orientationSet
 
     def buildAgentLocationGrid(self, coords):
