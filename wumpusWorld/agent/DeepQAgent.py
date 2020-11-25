@@ -26,6 +26,7 @@ class DeepQAgent():
         self.agentHeardScream = agentHeardScream
         self.agentOrientationSet = agentOrientationSet
 
+    #Helper method to print grids nicely
     def printTable(self, grid):
         rows = []
         for i in range(self.gridHeight):
@@ -36,6 +37,7 @@ class DeepQAgent():
             rows.append('|'.join(cells))
         return '\n'.join(rows)
 
+    #Helper method to print all the different belief state values
     def printBeliefState(self, percept):
         print("-- Percept --")
         print(percept.show())
@@ -67,18 +69,17 @@ class DeepQAgent():
         print('-- Agent Heard Scream --')
         print(self.agentHeardScream)          
 
-    def getAgentBeliefState(self):       
-        #flattening and concatenating all the arrays to one array of length 72
+    #flattening and concatenating all the arrays to one array of length 72
+    def getAgentBeliefState(self):               
         return np.concatenate((np.array(self.agentLocationGrid).flatten(), np.array(self.safeLocationGrid).flatten(),np.array(self.stenchLocationGrid).flatten(), np.array(self.breezeLocationGrid).flatten(), np.array(self.agentOrientationSet).flatten(), np.array(self.agentHasGold).flatten(), np.array(self.agentSensesGold).flatten(), np.array(self.agentHasArrow).flatten(), np.array(self.agentHeardScream).flatten()))
 
-
+    #Set is represented as a list of 1s and 0s
+    #I don't think the order matters, but we'll say:
+    #  [1, 0, 0, 0] = North
+    #  [0, 1, 0, 0] = South
+    #  [0, 0, 1, 0] = East
+    #  [0, 0, 0, 1] = West
     def buildAgentOrientatioSet(self, orientation):
-        #Set is represented as a list of 1s and 0s
-        #I don't think the order matters, but we'll say:
-        #  [1, 0, 0, 0] = North
-        #  [0, 1, 0, 0] = South
-        #  [0, 0, 1, 0] = East
-        #  [0, 0, 0, 1] = West
         orientationSet = []
 
         if orientation == North:
@@ -92,6 +93,7 @@ class DeepQAgent():
 
         return orientationSet
 
+    #Build agent location grid
     def buildAgentLocationGrid(self, coords):
         rows = []
 
@@ -106,7 +108,8 @@ class DeepQAgent():
             rows.append(cols)
 
         return rows
-
+    
+    #Build safe location grid
     def buildSafeLocationGrid(self, visited):
         rows = []
 
@@ -122,6 +125,7 @@ class DeepQAgent():
 
         return rows            
 
+    #Build stench location grid
     def buildStenchLocationGrid(self, stenches):
         rows = []
 
@@ -136,7 +140,8 @@ class DeepQAgent():
             rows.append(cols)
 
         return rows 
-
+    
+    #Build breeze location grid
     def buildBreezeLocationGrid(self, breezes):
         rows = []
 
@@ -152,6 +157,7 @@ class DeepQAgent():
 
         return rows
 
+    #apply next action. Action value is passed in from training(0,1,2,4,5)
     def nextAction(self, percept, action):
         ret = deepcopy(self)
 
