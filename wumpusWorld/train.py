@@ -38,7 +38,7 @@ batch_size = 200
 loss_fn = torch.nn.MSELoss()
 learning_rate = 1e-3
 replay = deque(maxlen=mem_size)
-sync_freq = 500 #A
+sync_freq = 500
 j=0
 
 def get_model():
@@ -50,8 +50,8 @@ def get_model():
         torch.nn.Linear(l3,l4)
     )
 
-    model2 = copy.deepcopy(model) #A
-    model2.load_state_dict(model.state_dict()) #B   
+    model2 = copy.deepcopy(model)
+    model2.load_state_dict(model.state_dict())
 
     return model, model2
 
@@ -116,12 +116,13 @@ for i in range(epochs):
 
             Q1 = model(state1_batch) 
             with torch.no_grad():
-                Q2 = model2(state2_batch) #B
+                Q2 = model2(state2_batch)
             
             Y = reward_batch + gamma * ((1-done_batch) * torch.max(Q2,dim=1)[0])
             X = Q1.gather(dim=1,index=action_batch.long().unsqueeze(dim=1)).squeeze()
             loss = loss_fn(X, Y.detach())
             print(i, loss.item()) 
+            print(env.visualize())
             clear_output(wait=True)
             optimizer.zero_grad()
             loss.backward()
