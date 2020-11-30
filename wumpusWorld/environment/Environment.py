@@ -2,7 +2,7 @@
 from copy import deepcopy
 import random
 from enum import Enum
-from wumpusWorld.environment.Agent import *
+#from wumpusWorld.environment.Agent import *
 from wumpusWorld.environment.Orientation import East, North, South, West
 
 class Action(Enum):
