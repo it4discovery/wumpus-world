@@ -1,13 +1,3 @@
-#Install PyTorch
-#pip3 install numpy
-#pip3 install --pre torch torchvision -f https://download.pytorch.org/whl/nightly/cpu/torch_nightly.html
-
-#Install IPython
-#pip3 install IPython
-
-#Install matplotlib
-#pip3 install matplotlib
-
 import sys
 import copy
 import numpy as np
@@ -20,21 +10,18 @@ from random import randrange
 
 sys.path.append(".")
 
-from environment.Environment import Action, WumpusWorldEnvironment, Percept
-from agent.DeepQAgent import DeepQAgent
-
-l1 = 72 # number of features as defined by question 1. Returned from getAgentBeliefState()
+l1 = 78 # number of features as defined by question 1. Returned from getAgentBeliefState()
 l2 = 150
 l3 = 100
 l4 = 6 # number of actions available -- all randomized within DeepQAgent Class
 
-gamma = 0.9
+gamma = 0.85
 epsilon = 0.3
-epochs = 1000
+epochs = 100
 losses = []
-max_moves = 50
-mem_size = 1000
-batch_size = 200
+max_moves = 250
+mem_size = 2000
+batch_size = 128
 loss_fn = torch.nn.MSELoss()
 learning_rate = 1e-3
 replay = deque(maxlen=mem_size)
@@ -67,14 +54,31 @@ def getState(belief_state):
 
     return state_, state
 
+def getMoveCount(moves):
+  sequence = 1
+  reversed_moves = moves[::-1]        
+  for index, move in enumerate(reversed_moves):
+      if index + 1 == len(reversed_moves):
+          break
+      if sequence == 10:
+          break
+      if(move == reversed_moves[index + 1]):
+          sequence += 1
+      else:
+          break 
+  return sequence               
+
 model, model2 = get_model()
 optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
+won_counter = 0
+move_tracker = []
 
 for i in range(epochs):
     terminated = False
     reward = 0
     status = 1
     mov = 0
+
     world = WumpusWorldEnvironment()
     initialEnv, initialPercept = world.apply(4, 4, 0.2, False)        
     agent = DeepQAgent(4, 4)    
@@ -83,22 +87,24 @@ for i in range(epochs):
     #method to return all belief state variables found in question 1 of the assignment description
     belief_state = agent.getAgentBeliefState()
     state1_, state1 = getState(belief_state)
-
+    move_tracker.append(randGen)
     while terminated == False:
+        j+=1
+        mov += 1      
         qval = model(state1)
         qval_ = qval.data.numpy()
         action_ = np.argmax(qval_)
-
         nextMove = action_.item()
-        if (random.random() < epsilon):
+        move_tracker.append(nextMove)
+        sameMoveCount = getMoveCount(move_tracker)
+
+        if (sameMoveCount >= 10):
             nextMove = np.random.randint(0,6)
-        else:
-            nextMove = np.argmax(qval_)
 
         env, agent, percept = run(env, agent, percept, nextMove) 
  
         #method to return all belief state variables found in question 1 of the assignment description
-        belief_state = agent.getAgentBeliefState()
+        belief_state = agent.getAgentBeliefState()      
         state2_, state2 = getState(belief_state)
         reward += percept.reward
 
@@ -121,7 +127,7 @@ for i in range(epochs):
             Y = reward_batch + gamma * ((1-done_batch) * torch.max(Q2,dim=1)[0])
             X = Q1.gather(dim=1,index=action_batch.long().unsqueeze(dim=1)).squeeze()
             loss = loss_fn(X, Y.detach())
-            print(i, loss.item()) 
+            print(mov, i, won_counter, loss.item()) 
             print(env.visualize())
             clear_output(wait=True)
             optimizer.zero_grad()
@@ -132,9 +138,11 @@ for i in range(epochs):
             if j % sync_freq == 0: 
                 model2.load_state_dict(model.state_dict())  
 
-        if reward != -1 or mov > max_moves:
-            status = 0
-            mov = 0
+        if reward > 0:
+          won_counter += 1
+
+        if mov > max_moves:
+            terminated = True
 
         if percept.isTerminated == True:
             terminated = True

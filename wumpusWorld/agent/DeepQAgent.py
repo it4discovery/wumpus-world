@@ -1,6 +1,3 @@
-from wumpusWorld.environment.Agent import Agent
-from wumpusWorld.environment.Environment import Coords, Action, Percept
-from wumpusWorld.environment.Orientation import East, North, South, West
 from copy import deepcopy
 from random import randrange
 import sys
@@ -9,7 +6,7 @@ sys.path.append(".")
 
 
 class DeepQAgent():
-    def __init__(self, gridHeight=4, gridWidth=4, agentState=Agent, safeLocations=[Coords(0,0)], stenchLocations=[], breezeLocations=[], agentLocationGrid = [], safeLocationGrid = [], stenchLocationGrid = [], breezeLocationGrid = [], agentHasGold = False, agentSensesGold = False, agentHasArrow = False, agentHeardScream = False, agentOrientationSet= False):
+    def __init__(self, gridHeight=4, gridWidth=4, agentState=Agent, safeLocations=[Coords(0,0)], stenchLocations=[], breezeLocations=[], agentLocationGrid = [], safeLocationGrid = [], stenchLocationGrid = [], breezeLocationGrid = [], agentHasGold = False, agentSensesGold = False, agentHasArrow = False, agentHeardScream = False, agentOrientationSet= False, previousAction = [], previousLocation = [], sameMovesSet = [], sameLocationSet = []):
         self.gridHeight = gridHeight
         self.gridWidth = gridWidth
         self.agentState = agentState()
@@ -25,6 +22,10 @@ class DeepQAgent():
         self.agentHasArrow = agentHasArrow
         self.agentHeardScream = agentHeardScream
         self.agentOrientationSet = agentOrientationSet
+        self.previousAction = previousAction
+        self.previousLocation = previousLocation
+        self.sameMovesSet = sameMovesSet
+        self.sameLocationSet = sameLocationSet
 
     #Helper method to print grids nicely
     def printTable(self, grid):
@@ -69,9 +70,9 @@ class DeepQAgent():
         print('-- Agent Heard Scream --')
         print(self.agentHeardScream)          
 
-    #flattening and concatenating all the arrays to one array of length 72
-    def getAgentBeliefState(self):               
-        return np.concatenate((np.array(self.agentLocationGrid).flatten(), np.array(self.safeLocationGrid).flatten(),np.array(self.stenchLocationGrid).flatten(), np.array(self.breezeLocationGrid).flatten(), np.array(self.agentOrientationSet).flatten(), np.array(self.agentHasGold).flatten(), np.array(self.agentSensesGold).flatten(), np.array(self.agentHasArrow).flatten(), np.array(self.agentHeardScream).flatten()))
+    #flattening and concatenating all the arrays to one array of length 78
+    def getAgentBeliefState(self):          
+        return np.concatenate((np.array(self.sameLocationSet).flatten(), np.array(self.sameMovesSet).flatten(), np.array(self.agentLocationGrid).flatten(), np.array(self.safeLocationGrid).flatten(),np.array(self.stenchLocationGrid).flatten(), np.array(self.breezeLocationGrid).flatten(), np.array(self.agentOrientationSet).flatten(), np.array(self.agentHasGold).flatten(), np.array(self.agentSensesGold).flatten(), np.array(self.agentHasArrow).flatten(), np.array(self.agentHeardScream).flatten()))
 
     #Set is represented as a list of 1s and 0s
     #I don't think the order matters, but we'll say:
@@ -92,6 +93,58 @@ class DeepQAgent():
             orientationSet.append([0, 0, 0, 1])
 
         return orientationSet
+
+    #Build counters for last number of moves and if they are the same
+    def buildSameMoves(self, moves):
+      sequence = 1
+      reversed_moves = moves[::-1]
+      fiveSame = 0         
+      tenSame = 0         
+      fiftySame = 0         
+      for index, move in enumerate(reversed_moves):
+          if index + 1 == len(reversed_moves):
+              break
+          
+          if(move == reversed_moves[index + 1]):
+              sequence += 1
+          else:
+              break
+      if sequence >= 5:
+        fiveSame = 1
+
+      if sequence >= 10:
+        tenSame = 1
+
+      if sequence >= 50:
+        fiftySame = 1  
+
+      return [fiveSame, tenSame, fiftySame] 
+
+    #Build counters for last number of locations and if they are the same
+    def buildSameLocations(self, locations):
+      sequence = 1
+      reversed_locations = locations[::-1]
+      fourSame = 0         
+      tenSame = 0         
+      fiftySame = 0         
+      for index, location in enumerate(reversed_locations):
+          if index + 1 == len(reversed_locations):
+              break
+          
+          if(location.x == reversed_locations[index + 1].x and location.y == reversed_locations[index + 1].y):
+              sequence += 1
+          else:
+              break
+      if sequence >= 4:
+        fourSame = 1
+
+      if sequence >= 10:
+        tenSame = 1
+
+      if sequence >= 50:
+        fiftySame = 1  
+
+      return [fourSame, tenSame, fiftySame]                      
 
     #Build agent location grid
     def buildAgentLocationGrid(self, coords):
@@ -160,7 +213,10 @@ class DeepQAgent():
     #apply next action. Action value is passed in from training(0,1,2,4,5)
     def nextAction(self, percept, action):
         ret = deepcopy(self)
-
+        
+        ret.previousAction.append(action)
+        ret.previousLocation.append(ret.agentState.location)
+        
         if(percept.stench == True):
             ret.stenchLocations.append(ret.agentState.location)
         if(percept.breeze == True):
@@ -175,6 +231,8 @@ class DeepQAgent():
         ret.agentHasArrow = 1 if ret.agentState.hasArrow == True else 0
         ret.agentHeardScream = 1 if percept.scream == True else 0
         ret.agentOrientationSet = self.buildAgentOrientatioSet(ret.agentState.orientation)
+        ret.sameMovesSet = self.buildSameMoves(ret.previousAction)
+        ret.sameLocationSet = self.buildSameLocations(ret.previousLocation)
 
         if action == 0:
             ret.agentState = ret.agentState.forward(
