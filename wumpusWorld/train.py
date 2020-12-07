@@ -7,6 +7,10 @@ import random
 from matplotlib import pylab as plt
 from collections import deque
 from random import randrange
+sys.path.append(".")
+
+from environment.Environment import Action, WumpusWorldEnvironment, Percept
+from agent.DeepQAgent import DeepQAgent	
 
 sys.path.append(".")
 
@@ -17,10 +21,10 @@ l4 = 6 # number of actions available -- all randomized within DeepQAgent Class
 
 gamma = 0.85
 epsilon = 0.3
-epochs = 100
+epochs = 15000
 losses = []
 max_moves = 250
-mem_size = 2000
+mem_size = 10000000
 batch_size = 128
 loss_fn = torch.nn.MSELoss()
 learning_rate = 1e-3
@@ -78,7 +82,7 @@ for i in range(epochs):
     reward = 0
     status = 1
     mov = 0
-
+    random_move_counter = 0
     world = WumpusWorldEnvironment()
     initialEnv, initialPercept = world.apply(4, 4, 0.2, False)        
     agent = DeepQAgent(4, 4)    
@@ -98,8 +102,14 @@ for i in range(epochs):
         move_tracker.append(nextMove)
         sameMoveCount = getMoveCount(move_tracker)
 
-        if (sameMoveCount >= 10):
+        # if (sameMoveCount >= 10):
+        #     random_move_counter += 1
+        #     nextMove = np.random.randint(0,6)
+        
+        if (random.random() < epsilon):
+            random_move_counter += 1
             nextMove = np.random.randint(0,6)
+
 
         env, agent, percept = run(env, agent, percept, nextMove) 
  
@@ -107,7 +117,9 @@ for i in range(epochs):
         belief_state = agent.getAgentBeliefState()      
         state2_, state2 = getState(belief_state)
         reward += percept.reward
-
+        # print("REWARD", reward)
+        # print("----")
+        # print("BELIEF_STATE", belief_state)
         exp =  (state1, action_, reward, state2, percept.isTerminated)
         replay.append(exp)
         state1 = state2     
@@ -127,7 +139,10 @@ for i in range(epochs):
             Y = reward_batch + gamma * ((1-done_batch) * torch.max(Q2,dim=1)[0])
             X = Q1.gather(dim=1,index=action_batch.long().unsqueeze(dim=1)).squeeze()
             loss = loss_fn(X, Y.detach())
-            print(mov, i, won_counter, loss.item()) 
+            print("Epoch =>", i) 
+            print("# of wins", won_counter)
+            print("# of NON random moves take per game", mov - random_move_counter)
+            print("# of random moves take per game", random_move_counter)
             print(env.visualize())
             clear_output(wait=True)
             optimizer.zero_grad()

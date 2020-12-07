@@ -3,6 +3,10 @@ from random import randrange
 import sys
 import numpy as np
 sys.path.append(".")
+from wumpusWorld.environment.Agent import Agent
+from wumpusWorld.environment.Environment import Coords, Action, Percept
+from wumpusWorld.environment.Orientation import East, North, South, West
+
 
 
 class DeepQAgent():
@@ -254,6 +258,8 @@ class DeepQAgent():
                 ret.agentState.hasGold = True
 
             return ret, Action.Grab
-        if action == 5:
-            ret.agentState.isTerminated = True
+        if action == 5:            
+            if(ret.agentState.location.x == Coords(0,0).x and ret.agentState.location.y == Coords(0,0).y):
+                ret.agentState.isTerminated = True
+                
             return ret, Action.Climb                            
